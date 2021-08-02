@@ -1,3 +1,14 @@
+*.html
+*.pdf
+*.csv
+*.tsv
+*.json
+*.xml
+*.shp
+*.xls
+*.xlsx
+
+### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
