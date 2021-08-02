@@ -1,2 +1,3 @@
 # Prototype-Insight
-ploup
+prototype pour l'Ile de France \\
+Claire et Mathis
