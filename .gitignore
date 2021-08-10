@@ -8,6 +8,10 @@
 *.xls
 *.xlsx
 
+*.osm
+*.osm-xml
+*.pkl
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
