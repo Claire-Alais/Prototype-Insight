@@ -145,14 +145,17 @@ class Way:
         # slice the node-array using this nifty recursive function
         def slice_array(ar, dividers):
             for i in range(1,len(ar)-1):
-                if dividers[ar[i]]>1:
-                    #vprint( "slice at %s"%ar[i],2)
-                    left = ar[:i+1]
-                    right = ar[i:]
+                try :
+                    if dividers[ar[i]]>1:
+                        #vprint( "slice at %s"%ar[i],2)
+                        left = ar[:i+1]
+                        right = ar[i:]
                     
-                    rightsliced = slice_array(right, dividers)
+                        rightsliced = slice_array(right, dividers)
                     
-                    return [left]+rightsliced
+                        return [left]+rightsliced
+                except KeyError:
+                    continue
             return [ar]
             
         slices = slice_array(self.nds, dividers)
@@ -356,7 +359,10 @@ class OSM:
                         nodes[node].checkTag('railway','tram_stop')):
                         node_histogram[node] += 2
                     else:
-                        node_histogram[node] += 1
+                        try :
+                            node_histogram[node] += 1
+                        except KeyError :
+                            continue
 
         
         #use that histogram to split all ways, replacing the member set of ways
@@ -552,24 +558,29 @@ class OSM:
         lastnode = None
         length = 0
         for node in way.nds:
-            if lastnode is None:
+            try :
+                if lastnode is None:
+
+                    lastnode = self.nodes[node]
+                    continue
+
+                # copied from
+                # http://stackoverflow.com/questions/5260423/torad-javascript-function-throwing-error
+                R = 6371 # km
+                dLat = (lastnode.lat - self.nodes[node].lat) * math.pi / 180
+                dLon = (lastnode.lon - self.nodes[node].lon) * math.pi / 180
+                lat1 = self.nodes[node].lat * math.pi / 180
+                lat2 = lastnode.lat * math.pi / 180
+                a = math.sin(dLat/2) * math.sin(dLat/2) + math.sin(dLon/2) * math.sin(dLon/2) * math.cos(lat1) * math.cos(lat2)
+                c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+                d = R * c
+
+                length += d
+
                 lastnode = self.nodes[node]
-                continue
-
-            # copied from
-            # http://stackoverflow.com/questions/5260423/torad-javascript-function-throwing-error
-            R = 6371 # km
-            dLat = (lastnode.lat - self.nodes[node].lat) * math.pi / 180
-            dLon = (lastnode.lon - self.nodes[node].lon) * math.pi / 180
-            lat1 = self.nodes[node].lat * math.pi / 180
-            lat2 = lastnode.lat * math.pi / 180
-            a = math.sin(dLat/2) * math.sin(dLat/2) + math.sin(dLon/2) * math.sin(dLon/2) * math.cos(lat1) * math.cos(lat2)
-            c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-            d = R * c
-
-            length += d
-
-            lastnode = self.nodes[node]
+            except KeyError:
+                length = 1000 #or even Inf ? NaN ?
+            
 
         return length
 
@@ -601,26 +612,36 @@ class OSM:
                     continue
                 unodes[nid]=True
                 if w.nds.index(nid)==0 or w.nds.index(nid)==len(w.nds)-1:
-                    self.nodes[nid].toOSM(x,True)
+                    try:
+                        self.nodes[nid].toOSM(x,True)
+                    except KeyError:
+                        continue
                 else:
-                    self.nodes[nid].toOSM(x)
+                    try :
+                        self.nodes[nid].toOSM(x)
+                    except KeyError:
+                        continue
         x.endElement('osm')
         x.endDocument()
 
     # returns a nice graph
     # attention do not use for a bigger network (only single lines)
     def graph(self,only_roads=True):
-      G = networkx.Graph()
-
-      for w in self.ways.values():
-          if only_roads and 'highway' not in w.tags:
+        vprint('Beginning theg raph within the function', 3)
+        G = networkx.Graph()
+        for w in self.ways.values():
+            if only_roads and 'highway' not in w.tags:
+                continue
+            G.add_weighted_edges_from([(w.nds[0],w.nds[-1],self.calclength(w))])
+        vprint('edges ok', 3)
+        for n_id in list(G.nodes(data=True)):  #changes according to https://stackoverflow.com/questions/33734836/graph-object-has-no-attribute-nodes-iter-in-networkx-module-python
+            try :
+                n = self.nodes[n_id[0]]  #changed from n_id to n_id[0]
+                G.nodes[n_id[0]].update(dict(data=n))  #same + used .update()
+            except KeyError:
               continue
-          G.add_weighted_edges_from([(w.nds[0],w.nds[-1],self.calclength(w))])
-      for n_id in list(G.nodes(data=True)):  #changes according to https://stackoverflow.com/questions/33734836/graph-object-has-no-attribute-nodes-iter-in-networkx-module-python
-          n = self.nodes[n_id[0]]  #changed from n_id to n_id[0]
-          G.node[n_id[0]].update(dict(data=n))  #same + used .update()
-      
-      return G
+        vprint('nodes ok', 3)
+        return G
 
     #def convert2neo4j(self,folder_to_put_db_in):
         #"""export in neo4j db formart"""
