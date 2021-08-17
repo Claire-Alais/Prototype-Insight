@@ -145,7 +145,7 @@ class Way:
         # slice the node-array using this nifty recursive function
         def slice_array(ar, dividers):
             for i in range(1,len(ar)-1):
-                try :
+                #try :
                     if dividers[ar[i]]>1:
                         #vprint( "slice at %s"%ar[i],2)
                         left = ar[:i+1]
@@ -154,8 +154,8 @@ class Way:
                         rightsliced = slice_array(right, dividers)
                     
                         return [left]+rightsliced
-                except KeyError:
-                    continue
+                #except KeyError:
+                    #continue
             return [ar]
             
         slices = slice_array(self.nds, dividers)
@@ -348,7 +348,7 @@ class OSM:
         """ prepare ways for routing """
         #count times each node is used
         node_histogram = dict.fromkeys( self.nodes.keys(), 0 )
-        for way in self.ways.values():
+        for way in list(self.ways.values()):
             if len(way.nds) < 2:       #if a way has only one node, delete it out of the osm collection
                 del self.ways[way.id]
             else:
@@ -359,10 +359,10 @@ class OSM:
                         nodes[node].checkTag('railway','tram_stop')):
                         node_histogram[node] += 2
                     else:
-                        try :
+                        #try :
                             node_histogram[node] += 1
-                        except KeyError :
-                            continue
+                        #except KeyError :
+                            #continue
 
         
         #use that histogram to split all ways, replacing the member set of ways
@@ -558,7 +558,7 @@ class OSM:
         lastnode = None
         length = 0
         for node in way.nds:
-            try :
+            #try :
                 if lastnode is None:
 
                     lastnode = self.nodes[node]
@@ -578,8 +578,8 @@ class OSM:
                 length += d
 
                 lastnode = self.nodes[node]
-            except KeyError:
-                length = 1000 #or even Inf ? NaN ?
+            #except KeyError:
+                #length = 1000 #or even Inf ? NaN ?
             
 
         return length
@@ -612,22 +612,22 @@ class OSM:
                     continue
                 unodes[nid]=True
                 if w.nds.index(nid)==0 or w.nds.index(nid)==len(w.nds)-1:
-                    try:
+                    #try:
                         self.nodes[nid].toOSM(x,True)
-                    except KeyError:
-                        continue
+                    #except KeyError:
+                        #continue
                 else:
-                    try :
+                    #try :
                         self.nodes[nid].toOSM(x)
-                    except KeyError:
-                        continue
+                    #except KeyError:
+                        #continue
         x.endElement('osm')
         x.endDocument()
 
     # returns a nice graph
     # attention do not use for a bigger network (only single lines)
     def graph(self,only_roads=True):
-        vprint('Beginning theg raph within the function', 3)
+        vprint('Beginning the graph within the function', 3)
         G = networkx.Graph()
         for w in self.ways.values():
             if only_roads and 'highway' not in w.tags:
@@ -635,16 +635,33 @@ class OSM:
             G.add_weighted_edges_from([(w.nds[0],w.nds[-1],self.calclength(w))])
         vprint('edges ok', 3)
         for n_id in list(G.nodes(data=True)):  #changes according to https://stackoverflow.com/questions/33734836/graph-object-has-no-attribute-nodes-iter-in-networkx-module-python
-            try :
+            #try :
                 n = self.nodes[n_id[0]]  #changed from n_id to n_id[0]
                 G.nodes[n_id[0]].update(dict(data=n))  #same + used .update()
-            except KeyError:
-              continue
+            #except KeyError:
+              #continue
         vprint('nodes ok', 3)
         return G
+    
+#    def graph2(self,only_roads=True):
+#        vprint('Beginning the graph within the function', 3)
+#        G = networkx.Graph()
+#        for w in self.ways.values():
+#            if only_roads and 'highway' not in w.tags:
+#                continue
+#            G.add_weighted_edges_from([(w.nds[0],w.nds[-1],self.calclength(w))])
+#        vprint('edges ok', 3)
+#        for n_id in list(G.nodes(data=True)):  #changes according to https://stackoverflow.com/questions/33734836/graph-object-has-no-attribute-nodes-iter-in-networkx-module-python
+#            #try :
+#                n = self.nodes[n_id[0]]  #changed from n_id to n_id[0]
+#                G.nodes[n_id[0]].update(dict(data=n))  #same + used .update()
+#            #except KeyError:
+#              #continue
+#        vprint('nodes ok', 3)
+#        return G
 
-    #def convert2neo4j(self,folder_to_put_db_in):
-        #"""export in neo4j db formart"""
+#    def convert2neo4j(self,folder_to_put_db_in):
+#        """export in neo4j db formart"""
         
         
         
@@ -758,7 +775,7 @@ def main_function(fn, transport="all", osm_file=False, graph=False, verbose=verb
         if graph :
             import save_module
             print('Graph will be saved as graph_nx')
-            save_module.save_obj(G,'graph_nx')
+            save_module.save_graph(G,'graph_nx')
         if return_graph :
             return G
 

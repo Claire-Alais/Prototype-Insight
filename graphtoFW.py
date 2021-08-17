@@ -103,15 +103,13 @@ def main():
             [left,bottom,right,top] = [float(x) for x in args.bbox.split(",")]
             fn = OSMtoGraph.getNetwork(left,bottom,right,top,args.transport)
         G = OSMtoGraph.main_function(fn, transport=args.transport, osm_file=args.osm_file, graph=True, verbose=verbose, return_graph=True)
-        #subprocess.call([sys.executable, 'OSMtoGraph.py', args])
-        #sys.runfile('C:/Users/clair/Documents/Insight-Signals/OSMtoGraph.py', wdir='C:/Users/clair/Documents/Insight-Signals')
+        save_module.save_graph(G, 'graph_nx')
     if args.graph:
-        G = save_module.load_obj(args.graph)
+        G = save_module.load_graph(args.graph)
     if G==None:
         sys.exit("ERROR: no input given")
 
     #networkx magick
-    save_module.save_obj(G, 'graph_nx')
     predecessors, distance = networkx.floyd_warshall_predecessor_and_distance(G)
     
     save_module.save_obj(predecessors, 'predecessors')
