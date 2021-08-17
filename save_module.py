@@ -21,3 +21,14 @@ def save_obj(obj, name ):
 def load_obj(name ):
     with open(name + '.pkl', 'rb') as f:
         return pickle.load(f)
+
+import pandas as pd  
+import networkx  
+    
+def save_graph(graph, name):
+    Gpanda = networkx.convert_matrix.to_pandas_edgelist(graph, source='source', target='target', edge_key='edgeKey')
+    Gpanda.to_csv(name + '.csv')
+    
+def load_graph(name):
+    Gpanda = pd.read_csv(name + '.csv')
+    return networkx.convert_matrix.from_pandas_edgelist(Gpanda, source='source', target='target')
