@@ -635,12 +635,10 @@ class OSM:
         with open(filename_edges, "w", encoding='UTF8') as fe :
             ewriter = csv.writer(fe)
             ewriter.writerow(["source", "target", "length", "car", "bike", "pedestrian", "maxspeed"])
-            count = 0
             for w in self.ways.values():
                 if not 'highway' in w.tags:
                     continue
                 #print(w.nds, w.tags, 'cycleway' in w.tags)
-                count += 1
                 lengthw = self.calclength(w)
                 pedestrianw = pedestrian(w.tags['highway'])
                 try :
@@ -655,18 +653,12 @@ class OSM:
                 carw = carw and (not('oneway' in w.tags) or w.tags['oneway']=='no')
                 bikew = bikew and not('oneway:bicycle' in w.tags and w.tags['oneway:bicycle'] == 'yes')
                 ewriter.writerow([w.nds[-1],w.nds[0],lengthw, carw, bikew, pedestrianw, maxspeedw])
-                if count >3:
-                    break
         vprint("Edge list done, starting node list...",1)
         with open(filename_nodes, "w", encoding='UTF8') as fn :
             nwriter = csv.writer(fn)
             nwriter.writerow(["Id", "Longitude", "Latitude"])
-            count=0
             for n in self.nodes.values():
                 nwriter.writerow([n.id, n.lon, n.lat])
-                count += 1
-                if count>10 :
-                    break
         vprint("Export to csv done",1)
 
     # returns a nice graph
