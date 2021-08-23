@@ -623,6 +623,51 @@ class OSM:
                         #continue
         x.endElement('osm')
         x.endDocument()
+    
+    def exportCSV(self, filename_edges, filename_nodes):
+        """
+        will write into csv file, without header for now
+        Header should be :
+        source, target, length, car, bike, pedestrian, maxspeed
+        """
+        import csv
+        vprint("csv export...",1)
+        with open(filename_edges, "w", encoding='UTF8') as fe :
+            ewriter = csv.writer(fe)
+            ewriter.writerow(["source", "target", "length", "car", "bike", "pedestrian", "maxspeed"])
+            count = 0
+            for w in self.ways.values():
+                if not 'highway' in w.tags:
+                    continue
+                #print(w.nds, w.tags, 'cycleway' in w.tags)
+                count += 1
+                lengthw = self.calclength(w)
+                pedestrianw = pedestrian(w.tags['highway'])
+                try :
+                    maxspeedw = w.tags['maxspeed']
+                except KeyError :
+                    maxspeedw = None
+                #first direction
+                carw = car(w.tags['highway'])
+                bikew = (carw and not(w.tags['highway'] in ['motorway', 'trunk', 'primary'])) or ('cycleway' in w.tags)
+                ewriter.writerow([w.nds[0],w.nds[-1],lengthw, carw, bikew, pedestrianw, maxspeedw]) #TODO la suite
+                #opposite direction
+                carw = carw and (not('oneway' in w.tags) or w.tags['oneway']=='no')
+                bikew = bikew and not('oneway:bicycle' in w.tags and w.tags['oneway:bicycle'] == 'yes')
+                ewriter.writerow([w.nds[-1],w.nds[0],lengthw, carw, bikew, pedestrianw, maxspeedw])
+                if count >3:
+                    break
+        vprint("Edge list done, starting node list...",1)
+        with open(filename_nodes, "w", encoding='UTF8') as fn :
+            nwriter = csv.writer(fn)
+            nwriter.writerow(["Id", "Longitude", "Latitude"])
+            count=0
+            for n in self.nodes.values():
+                nwriter.writerow([n.id, n.lon, n.lat])
+                count += 1
+                if count>10 :
+                    break
+        vprint("Export to csv done",1)
 
     # returns a nice graph
     # attention do not use for a bigger network (only single lines)
@@ -715,7 +760,18 @@ class OSM:
 #    if args.osm_file:
 #        vprint( "OSM-XML file export to '"+args.osm_file+"'",1)  
 #        osm.export(args.osm_file,args.transport)
-        
+def pedestrian(highway):
+    if highway in ['pedestrian', 'residential', 'living_street', 'tertiary', 'track', 'footway', 'bridleway', 'steps', 'corridor', 'path']:
+        return True
+    else :
+        return False
+    
+def car(highway):
+    if highway in ['residential', 'service', 'living_street', 'tertiary', 'track', 'motorway','primary','secondary','trunk','motorway_link','primary_link','secondary_link','trunk_link','tertiary_link']:
+        return True
+    else :
+        return False
+
         
 def main():
     parser = argparse.ArgumentParser(\
@@ -736,6 +792,10 @@ def main():
                             dest="graph", action="store_true")
     parser.add_argument("-r", "--return_graph", help="returns the networkx graph",
                             dest="return_graph", action="store_true")
+    parser.add_argument("-e", "--csv-edge-file", nargs='?', const='edge.csv',
+            help="export the routeable graph as csv edgelist to given file, to use with -n")
+    parser.add_argument("-n", "--csv-node-file", nargs='?', const='export.osm',
+            help="export the routeable graph as csv node list to given file, to use with -e")
     args = parser.parse_args()
 
     global verbose
@@ -755,11 +815,11 @@ def main():
     if fn==None:
         sys.exit("ERROR: no input given")
     
-    main_function(fn, args.transport, args.osm_file, args.graph, verbose, args.return_graph)
+    main_function(fn, args.transport, args.osm_file, args.graph, verbose, args.return_graph, args.csv_edge_file, args.csv_node_file)
 
 
-#◘if we want to use the traditional way of calling functions
-def main_function(fn, transport="all", osm_file=False, graph=False, verbose=verbose, return_graph=False):
+#if we want to use the traditional way of calling functions
+def main_function(fn, transport="hw", osm_file=False, graph=False, verbose=verbose, return_graph=False, csv_edge_file=False, csv_node_file=False):
     print('I entered the main function')
     fp = open( fn,'r', encoding="utf-8" )  #added encoding="utf-u"
     osm = OSM(fp,transport)
@@ -768,6 +828,10 @@ def main_function(fn, transport="all", osm_file=False, graph=False, verbose=verb
     if osm_file:
         vprint( "OSM-XML file export to '"+osm_file+"'",1)  
         osm.export(osm_file,transport)
+        
+    if csv_edge_file and csv_node_file:
+        vprint("CSV file export to "+ csv_edge_file + " and " + csv_node_file,1 )
+        osm.exportCSV(filename_edges = csv_edge_file, filename_nodes = csv_node_file)
         
     if graph or return_graph:
         vprint( "Convert as networkx graph",1)
@@ -778,9 +842,8 @@ def main_function(fn, transport="all", osm_file=False, graph=False, verbose=verb
             save_module.save_graph(G,'graph_nx')
         if return_graph :
             return G
+        
 
 
 if __name__ == '__main__':
     main()
-    
-    #https://github.com/JamesChevalier/cities/tree/master/finland/etel%C3%A4-suomi
