@@ -134,3 +134,19 @@ def main_function(nodes_file, edges_file, coord_file, cityFilter=False):
 
 if __name__ == '__main__':
     main()
+    
+"""
+post processing
+
+test = pandas.read_csv('distances_paths_cities.csv')
+truc = pandas.read_csv('commune_node.csv')
+
+testplus = test.merge(truc[['argmin','code_insee']],'left', left_on='Unnamed: 0', right_on='argmin')
+testplus.columns = ['source', 'target', 'distance', 'path','argmin','code_insee_source']
+testplus = testplus[['source', 'target', 'distance', 'path','code_insee_source']]
+testplus= testplus.merge(truc[['argmin','code_insee']],'left', left_on='target', right_on='argmin')
+testplus = testplus[['source', 'target', 'distance', 'path','code_insee_source','code_insee']]
+testplus.columns = ['source', 'target', 'distance', 'path','code_insee_source','code_insee_target']
+
+testplus.to_csv('avec_code_insee_plus.csv')
+"""
