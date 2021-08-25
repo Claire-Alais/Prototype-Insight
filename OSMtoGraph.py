@@ -680,78 +680,7 @@ class OSM:
         vprint('nodes ok', 3)
         return G
     
-#    def graph2(self,only_roads=True):
-#        vprint('Beginning the graph within the function', 3)
-#        G = networkx.Graph()
-#        for w in self.ways.values():
-#            if only_roads and 'highway' not in w.tags:
-#                continue
-#            G.add_weighted_edges_from([(w.nds[0],w.nds[-1],self.calclength(w))])
-#        vprint('edges ok', 3)
-#        for n_id in list(G.nodes(data=True)):  #changes according to https://stackoverflow.com/questions/33734836/graph-object-has-no-attribute-nodes-iter-in-networkx-module-python
-#            #try :
-#                n = self.nodes[n_id[0]]  #changed from n_id to n_id[0]
-#                G.nodes[n_id[0]].update(dict(data=n))  #same + used .update()
-#            #except KeyError:
-#              #continue
-#        vprint('nodes ok', 3)
-#        return G
 
-#    def convert2neo4j(self,folder_to_put_db_in):
-#        """export in neo4j db formart"""
-        
-        
-        
-# main
-#
-# method to read the command line arguments and run the program
-#def main():
-#    parser = argparse.ArgumentParser(\
-#             description='This script provides you routeable data from the OpenStreetMap Project',
-#             epilog="Have fun while usage")
-#    #input selection
-#    group = parser.add_mutually_exclusive_group()
-#    group.add_argument('-f','--filename','--file', help='the path to a local file')
-#    group.add_argument("-b", "--bbox", help="an area to download highways in the format 'left,bottom,right,top'")
-#    parser.add_argument("-t", "--transport", choices=["all", "hw", "pt"], default="all",
-#            help="Experimental Option! Uses as well public transportation information")
-#    parser.add_argument("-o", "--osm-file", nargs='?', const='export.osm',
-#            help="export the routeable graph as osm-xml to given file")
-#            #type=argparse.FileType('w'),
-#    parser.add_argument("-g", "--graph", help="saves the networkx graph obtained",
-#                            dest="graph", action="store_true")
-#    parser.add_argument("-w", "--floyd-warshall", help="compute the shortest path matrix with Floyd-Warshall",
-#                            dest="paths", action="store_true")
-#    parser.add_argument("-v", "--verbosity", type=int, choices=[0, 1, 2, 3],
-#                                help="increase output verbosity")
-#    args = parser.parse_args()
-#
-#    #TODO ensure there is always an input - fix in argument syntax
-#    #bbox or filename
-#    global verbose
-#    verbose = args.verbosity
-#    if len(sys.argv) == 1:
-#        parser.print_help()
-#        sys.exit(0)
-#
-#    #get the input
-#    fn = ""
-#    if args.filename:
-#        fn = args.filename
-#
-#    if args.bbox:
-#        [left,bottom,right,top] = [float(x) for x in args.bbox.split(",")]
-#        fn = getNetwork(left,bottom,right,top,args.transport)
-#    if fn==None:
-#        sys.exit("ERROR: no input given")
-#
-#    fp = open( fn,'r', encoding="UTF-8" )  #added encoding="UTF-u"
-#    osm = OSM(fp,args.transport)
-#    fp.close()
-#
-#    if args.osm_file:
-#        vprint( "OSM-XML file export to '"+args.osm_file+"'",1)  
-#        osm.export(args.osm_file,args.transport)
 def pedestrian(highway):
     if highway in ['pedestrian', 'residential', 'living_street', 'tertiary', 'track', 'footway', 'bridleway', 'steps', 'corridor', 'path']:
         return True
@@ -784,9 +713,9 @@ def main():
                             dest="graph", action="store_true")
     parser.add_argument("-r", "--return_graph", help="returns the networkx graph",
                             dest="return_graph", action="store_true")
-    parser.add_argument("-e", "--csv-edge-file", nargs='?', const='edge.csv',
+    parser.add_argument("-e", "--csv-edge-file", nargs='?', const='edges.csv',
             help="export the routeable graph as csv edgelist to given file, to use with -n")
-    parser.add_argument("-n", "--csv-node-file", nargs='?', const='export.osm',
+    parser.add_argument("-n", "--csv-node-file", nargs='?', const='nodes.csv',
             help="export the routeable graph as csv node list to given file, to use with -e")
     args = parser.parse_args()
 
