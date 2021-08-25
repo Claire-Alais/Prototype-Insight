@@ -28,7 +28,7 @@ def grandParis(stri) :
 
 #useful functions______________________________________________________________
 
-verbose = 1
+verbose = 3
 def vprint(stri,level):
     global verbose
     if verbose >= level:
@@ -44,7 +44,7 @@ def city_nodes(dfNodes, dfCoord):
     npCoord = dfCoord.values
     liste_commune=[]
     for i in range(len(npCoord)):
-        liste_commune.append(find_min(A,B, float(npCoord[i,1]), float(npCoord[i,2])))
+        liste_commune.append(find_min(A,B, float(npCoord[i,2]), float(npCoord[i,3]),dfNodes))
     return liste_commune
 
 #core__________________________________________________________________________
@@ -59,8 +59,9 @@ def main():
     parser.add_argument("-n", "--graphNodes", help='path to node list file')
     parser.add_argument("-e", "--graphEdges", help='path to edge list file')
     parser.add_argument("-c", "--cityCoord", help='path to coordinates of city centers file')
-    parser.add_argument("-f", "--filter", help="selects a subset of cities in the city-coord file",
-                            dest='cityFilter', action='store_true')
+    #parser.add_argument("-f", "--filter", help="selects a subset of cities in the city-coord file", dest='cityFilter', action='store_true')
+    parser.add_argument("-f", "--cityFilter", nargs='?', const='grandParis',
+            help="selects a subset of cities in the city-coord file")
     parser.add_argument("-v", "--verbosity", type=int, choices=[0, 1, 2, 3],
                                 help="increase output verbosity")
     args = parser.parse_args()
@@ -89,7 +90,7 @@ def main():
 
 def main_function(nodes_file, edges_file, coord_file, cityFilter=False):
     vprint("Starting preprocessing...",2)
-    
+    global verbose
     # read files
     dfCoord = pandas.read_csv(coord_file)
     dfNodes = pandas.read_csv(nodes_file)
@@ -108,27 +109,28 @@ def main_function(nodes_file, edges_file, coord_file, cityFilter=False):
             #dfCoord.to_csv('grandParis_coord.csv')          
         else : 
             sys.exit("ERROR: this filter is not defined. Use 'grandParis' or define it beforehand")
-    
+    print(dfNodes)
+    print(dfCoord)
     # compute closest to node of the graph to each city center
     list_cities = city_nodes(dfNodes, dfCoord)
     dfCoord['closest_node'] = list_cities
-    
+    print(dfCoord)
+
     # graph theory computations
     vprint("Starting path optimization...",2)
     G = save_module.load_graph(edges_file)
     dictionnary = {}
     count = 1
-    vprint("There are "+ len(list_cities)+ " cities to look at",3)
+    vprint("There are "+str(len(list_cities))+" cities to look at",3)
     for source_commune in list_cities:
         if count % 10 == 0 :
-            vprint("Done "+count,3)
-            dict_provisoire_length, dict_provisoire_path  = networkx.algorithms.shortest_paths.weighted.single_source_dijkstra(G, source_commune, weight = 'length')
-            for commune in set(list_cities).intersection(dict_provisoire_length.keys()):
-                dictionnary[(source_commune, commune)] = dict_provisoire_length[commune], dict_provisoire_path[commune]
-                count += 1
+            vprint("Done "+str(count),3)
+        dict_provisoire_length, dict_provisoire_path  = networkx.algorithms.shortest_paths.weighted.single_source_dijkstra(G, source_commune, weight = 'length')
+        for commune in set(list_cities).intersection(dict_provisoire_length.keys()):
+            dictionnary[(source_commune, commune)] = dict_provisoire_length[commune], dict_provisoire_path[commune]
+            count += 1
     vprint("Computations finished, saving to csv file",2)
-    pandas.DataFrame(dictionnary).transpose().to_csv('distances_paths_cities.csv')
-    
+    pandas.DataFrame(dictionnary).transpose().to_csv('distances_paths_cities.csv') 
 
 if __name__ == '__main__':
     main()
