@@ -448,7 +448,7 @@ class OSM:
         #extract stops
         stops = []
         #iterates through the items list (converted from hash)
-        for nid,role in map(lambda t: t.items()[0], rel.mnode): 
+        for nid,role in map(lambda t: list(t.items())[0], rel.mnode): 
             if role.split(':')[0]=='stop':
                 stops.append(nid)
         vprint( str(len(stops))+" Stops found",2)
@@ -459,14 +459,18 @@ class OSM:
         last_way = None
         i = 0
         #iterates through the items list (converted from hash)
-        for old_wayid,role in map(lambda t: (t.items()[0]), rel.mway):
+        for old_wayid,role in map(lambda t: (list(t.items())[0]), rel.mway):
             if not (role=='forward' or role=='backward' or role==''):
                 continue
-            vprint( "\ntry adding Way["+str(old_wayid)+"]",2)
-            vprint(self.vways[old_wayid],3)
-            nds = []
-            
-            #first node out of first way
+            #restricting to ways that belong to the list of ways within the region of interest
+            try :
+                vprint( "\ntry adding Way["+str(old_wayid)+"]",2)
+                vprint(self.vways[old_wayid],3)
+            except KeyError :
+                print('KeyError ', old_wayid)
+                continue
+            nds = []          
+            #first node out of first way  
             fnode = self.ways[self.vways[old_wayid][0]].nds[0]
 
             #last node out of last way
@@ -660,7 +664,10 @@ class OSM:
             for n in self.nodes.values():
                 nwriter.writerow([n.id, n.lon, n.lat])
         vprint("Export to csv done",1)
-
+        
+        def exportCSV_pt(self, filename_edges, filename_nodes):
+            pass
+        
     # returns a nice graph
     # attention do not use for a bigger network (only single lines)
     def graph(self,only_roads=True):
@@ -741,7 +748,6 @@ def main():
 
 #if we want to use the traditional way of calling functions
 def main_function(fn, transport="hw", osm_file=False, graph=False, verbose=verbose, return_graph=False, csv_edge_file=False, csv_node_file=False):
-    print('I entered the main function')
     fp = open( fn,'r', encoding="utf-8" )  #added encoding="utf-u"
     osm = OSM(fp,transport)
     fp.close()
