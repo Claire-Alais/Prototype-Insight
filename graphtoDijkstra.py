@@ -194,8 +194,11 @@ def main_function(nodes_file, edges_file, coord_file, verbosity, cityFilter=Fals
         # if there are too many useless nodes in the node list, a first filter
         dfNodes = pandas.DataFrame(dfEdges['source'].unique()).merge(dfNodes, 
                                   'left', left_on=0, right_on='Id')
+        #we do not want a city to be represented by a node not accessible to one type of transport
+        dfNodescities = pandas.DataFrame(dfEdges.loc[dfEdges['car'] & dfEdges['bike'] & dfEdges['pedestrian']]['source'].unique()).merge(dfNodes, 
+                                  'left', left_on=0, right_on='Id')
         #dfNodes.to_csv('nodesShort.csv')
-    
+        vprint("Preprocessing: applying filter",2)
         # filtering the coordinates files if it covers a bigger region
         if cityFilter:
             if cityFilter == 'grandParis':
@@ -208,7 +211,7 @@ def main_function(nodes_file, edges_file, coord_file, verbosity, cityFilter=Fals
             else : 
                 sys.exit("ERROR: this filter is not defined. Use 'grandParis', 'paris' or define it beforehand")
             # compute closest to node of the graph to each city center
-            list_cities = city_nodes(dfNodes, dfCoord)
+            list_cities = city_nodes(dfNodescities, dfCoord)
             dfCoord['closest_node'] = list_cities
             dfCoord.to_csv('commune_node_codeINSEE.csv')
         
