@@ -8,6 +8,32 @@ Floyd-Warshall alternative: Dijkstra from city center to city center
 
 /!\ not yet very robust to change in names of columns etc,
 /!\ adaptations needed for other cities
+
+Missing cities in dt_idf_loc.csv, to add to have a complete Grand Paris dataset
+df2 = pandas.DataFrame([[93073,48.95,2.57222],
+                    [92026,48.8972,2.2522],
+                    [92004,48.91075,2.288933],
+                    [75101,48.86263, 2.336298 ],
+                    [75102,48.867903, 2.344111],
+                    [75103,48.863053, 2.359368],
+                    [75104,48.854229, 2.357364],
+                    [75105,48.844509, 2.349863],
+                    [75106,48.848968, 2.332671],
+                    [75107,48.856083, 2.312439],
+                    [75108,48.872527, 2.312586],
+                    [75109,48.876897, 2.337464],
+                    [75110,48.876029, 2.361113],
+                    [75111,48.859415, 2.378731],
+                    [75112,48.835154, 2.419818],
+                    [75113,48.82872, 2.362471],
+                    [75114,48.828994, 2.327104],
+                    [75115,48.840155, 2.293563],
+                    [75116,48.860397, 2.262102],
+                    [75117,48.887337, 2.307486],
+                    [75118,48.892735, 2.348712],
+                    [75119,48.886869, 2.384696],
+                    [75120,48.86318, 2.400816]], columns=['code_insee','latitude','longitude'])
+
 """
 
 import sys
@@ -16,6 +42,7 @@ import pandas
 import numpy
 import save_module
 import networkx
+import math
 
 #filter functions______________________________________________________________
 
@@ -64,18 +91,18 @@ def city_nodes(dfNodes, dfCoord):
 def travel_time(DataFrame, transport):
     #distance is in km, time in min
     if transport == 'car' or transport =='':
-        DataFrame['time_travel_by_car'] = DataFrame['distance']/18/60 # ~18km/h en moyenne en ville#travel_time_car(DataFrame, 0, simplified=True)
+        DataFrame['time_travel_by_car'] = DataFrame['length_car']/18*60 # ~18km/h en moyenne en ville#travel_time_car(DataFrame, 0, simplified=True)
     if transport == 'motorcycle' or transport =='':
-        DataFrame['time_travel_by_motorcycle'] = DataFrame['distance']/25/60 # ~25km/h en moyenne en ville#travel_time_car(DataFrame, 0, simplified=True)
+        DataFrame['time_travel_by_motorcycle'] = DataFrame['length_car']/25*60 # ~25km/h en moyenne en ville#travel_time_car(DataFrame, 0, simplified=True)
     if transport == 'bike' or transport =='':
-        DataFrame['time_travel_by_bike'] = DataFrame['distance']/1320 # ~22km/h cycling
+        DataFrame['time_travel_by_bike'] = DataFrame['length_bike']/22*60 # ~22km/h cycling
     if transport == 'walk' or transport =='':
-        DataFrame['time_travel_by_walk'] = DataFrame['distance']/360 # ~6km/h walking
+        DataFrame['time_travel_by_walk'] = DataFrame['length_pedestrian']/6*60 # ~6km/h walking
     return DataFrame
 
 def travel_time_car(DataFrame, edges, simplified=False):
     if simplified :
-        return [DataFrame['Distance']/18/60] # ~18km/h en moyenne en ville
+        return [DataFrame['Distance']/18*60] # ~18km/h en moyenne en ville
     #ça va être hyper long...
     else :
         edgeList = pandas.read_csv(edges).set_index(['source','target'])
@@ -93,13 +120,18 @@ def travel_time_car(DataFrame, edges, simplified=False):
             times.append(time)
         return times
 
+def weights_building_f(length, boolean):
+    if boolean :
+        return length
+    else :
+        return math.inf
+
 def weights_building(dfEdges):
-    beaucoup = 10000
     modes = ['car', 'bike', 'pedestrian']
     for mode in modes :
-        dfEdges['length_'+ mode] = dfEdges['length'].to_numpy()*dfEdges[mode].to_numpy() + (1-dfEdges[mode].to_numpy())*beaucoup    
+        dfEdges['length_'+ mode] = [weights_building_f(row[0],row[1]) for row in zip(dfEdges['length'],dfEdges[mode])]
     dfEdges['maxspeed'] = dfEdges['maxspeed'].replace({'walk': 10, 'FR:urban' : 50, 'FR:rural' : 80, 'FR:zone30' : 30, 'FR:motorway' : 130}).astype(float)
-    dfEdges['time_car'] = dfEdges['length_car'].to_numpy()/(dfEdges['maxspeed'].fillna(50))/60
+    dfEdges['time_car'] = dfEdges['length_car'].to_numpy()/(dfEdges['maxspeed'].fillna(50))*60
     return dfEdges    
             
 
@@ -179,7 +211,6 @@ def main_function(nodes_file, edges_file, coord_file, verbosity, cityFilter=Fals
             list_cities = city_nodes(dfNodes, dfCoord)
             dfCoord['closest_node'] = list_cities
             dfCoord.to_csv('commune_node_codeINSEE.csv')
-            vprint("Current list of city nodes :" + str(list_cities),3)
         
         #test: is it well related to the rest of the graph ?
         count = 0
@@ -205,18 +236,17 @@ def main_function(nodes_file, edges_file, coord_file, verbosity, cityFilter=Fals
         vprint("Preprocessing done, next time call commune_node_codeINSEE.csv as dfCoord and drop the -cn",2)
     
     list_cities = dfCoord['closest_node'].to_list()
-    vprint("List of city nodes :" + str(list_cities),3)
     # graph theory computations
     vprint("Starting path optimization...",2)
-    G = save_module.load_graph(edges_file)
     dfEdges = weights_building(dfEdges)
+    G = networkx.convert_matrix.from_pandas_edgelist(dfEdges, source='source', target='target', edge_attr=True)
     weights = ['length_car', 'length_bike', 'length_pedestrian', 'time_car']
     dictionnary = {}
     count = 1
     vprint("There are "+str(len(list_cities))+" cities to look at",3)
     for i in range(len(list_cities)):
         source_commune = dfCoord.at[i, 'closest_node']
-        if count % 5 == 0 :
+        if count % 30 == 0 :
             vprint("Done "+str(count),3)
         for weight in weights :
             dict_provisoire_length, dict_provisoire_path = networkx.algorithms.shortest_paths.weighted.single_source_dijkstra(G, source_commune, weight=weight)
@@ -227,8 +257,8 @@ def main_function(nodes_file, edges_file, coord_file, verbosity, cityFilter=Fals
     #Minimal postprocessing
     vprint("Postprocessing: adding city tags in database...",2)
     df_result = pandas.DataFrame(dictionnary).transpose()
-    df_result.to_csv('TEST_20210906distances_paths_cities.csv')
-    df_result = pandas.read_csv('TEST_20210906distances_paths_cities.csv')
+    df_result.to_csv('OUTPUT_distances_paths_cities.csv')
+    df_result = pandas.read_csv('OUTPUT_distances_paths_cities.csv')
     df_result.columns=['source','target','weight','distance','path']
     result_complete = df_result.merge(dfCoord[['closest_node','code_insee']],'left', left_on='source', right_on='closest_node')
     result_complete.columns = ['source', 'target', 'weight', 'distance', 'path','argmin','code_insee_source']
@@ -238,7 +268,7 @@ def main_function(nodes_file, edges_file, coord_file, verbosity, cityFilter=Fals
     result_complete.columns = ['source', 'target', 'weight', 'distance', 'path','code_insee_source','code_insee_target']
     #the end
     vprint("Computations finished, saving to csv file",2)
-    result_complete.to_csv('TEST_20210906distances_paths_cities.csv') 
+    result_complete.to_csv('OUTPUT_distances_paths_cities.csv') 
 
 if __name__ == '__main__':
     main()

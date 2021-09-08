@@ -16,4 +16,4 @@ def save_graph(graph, name):
     
 def load_graph(name):
     Gpanda = pd.read_csv(name)
-    return networkx.convert_matrix.from_pandas_edgelist(Gpanda, source='source', target='target', edge_attr=True)
+    return networkx.convert_matrix.from_pandas_edgelist(Gpanda, source='source', target='target', edge_attr=True, create_using=networkx.DiGraph())
