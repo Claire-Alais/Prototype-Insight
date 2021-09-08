@@ -214,7 +214,8 @@ def main_function(nodes_file, edges_file, coord_file, verbosity, cityFilter=Fals
         
         #test: is it well related to the rest of the graph ?
         count = 0
-        G = G = save_module.load_graph(edges_file)
+        G = save_module.load_graph(edges_file)
+        vprint("There are "+str(len(list_cities))+" nodes to check",3)
         for i in range(len(list_cities)):
             source_commune = dfCoord.at[i, 'closest_node']
             if count % 10 == 0 :
@@ -239,14 +240,14 @@ def main_function(nodes_file, edges_file, coord_file, verbosity, cityFilter=Fals
     # graph theory computations
     vprint("Starting path optimization...",2)
     dfEdges = weights_building(dfEdges)
-    G = networkx.convert_matrix.from_pandas_edgelist(dfEdges, source='source', target='target', edge_attr=True)
+    G = networkx.convert_matrix.from_pandas_edgelist(dfEdges, source='source', target='target', edge_attr=True, create_using=networkx.DiGraph())
     weights = ['length_car', 'length_bike', 'length_pedestrian', 'time_car']
     dictionnary = {}
     count = 1
     vprint("There are "+str(len(list_cities))+" cities to look at",3)
     for i in range(len(list_cities)):
         source_commune = dfCoord.at[i, 'closest_node']
-        if count % 30 == 0 :
+        if count % 10 == 0 :
             vprint("Done "+str(count),3)
         for weight in weights :
             dict_provisoire_length, dict_provisoire_path = networkx.algorithms.shortest_paths.weighted.single_source_dijkstra(G, source_commune, weight=weight)
@@ -269,6 +270,7 @@ def main_function(nodes_file, edges_file, coord_file, verbosity, cityFilter=Fals
     #the end
     vprint("Computations finished, saving to csv file",2)
     result_complete.to_csv('OUTPUT_distances_paths_cities.csv') 
+    vprint("Work done, good bye !",2)
 
 if __name__ == '__main__':
     main()
